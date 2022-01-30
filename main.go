@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 
 	"golang.org/x/term"
@@ -12,29 +14,57 @@ import (
 // escape or else we'll be stuck in raw mode and will hae to kill
 // the terminal in order to break out
 
-const (
-	ClrScr   = "\x1b[2J"
-	CurPosUp = "\x1b[H" // CUP
-)
+func clearScreen() {
+	codes := []string{
+		"\x1b[2J",
+		"\x1b[H", // CUP
+	}
+	for _, code := range codes {
+		fmt.Fprint(os.Stdout, code)
+	}
+}
 
-func clearJunk() {
-	fmt.Fprint(os.Stdout, ClrScr)
-	fmt.Fprint(os.Stdout, CurPosUp)
+var stdinFd int
+var state *term.State
+var initError error
+
+func shutDown(stdinFd int, state *term.State) {
+	term.Restore(stdinFd, state)
+	clearScreen()
+}
+
+func init() {
+	clearScreen()
+	stdinFd = int(os.Stdout.Fd())
+	state, initError = term.MakeRaw(stdinFd)
 }
 
 func main() {
-	clearJunk()
-	//var term unix.Termios
-	//fmt.Println(term)
-	stdinFd := int(os.Stdout.Fd())
-	state, err := term.MakeRaw(stdinFd)
-	defer term.Restore(stdinFd, state)
-	c, r, err := term.GetSize(stdinFd)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "err:", err, c)
+	if initError != nil {
+		fmt.Fprintln(os.Stdout, "err:", initError)
+		return
 	}
-	//fmt.Println(c, r)
-	for i := 0; i < r; i++ {
-		fmt.Print("~\r\n")
+	defer shutDown(stdinFd, state)
+
+	//var term unix.Termios
+	//c, r, err := term.GetSize(stdinFd)
+	rd := bufio.NewReader(os.Stdin)
+
+OUT:
+	for {
+		b, err := rd.ReadByte()
+		switch err {
+		case nil: // no error, process input
+			fmt.Print(b)
+			if b == 4 {
+				fmt.Print("qutting!\r\n")
+				break OUT
+			}
+		case io.EOF:
+			break
+		default:
+			fmt.Print("err: %s\r\n", err)
+			break
+		}
 	}
 }
