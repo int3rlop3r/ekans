@@ -8,13 +8,30 @@ import (
 	"golang.org/x/term"
 )
 
-func clearScreen() {
-	codes := []string{
-		"\x1b[2J",
-		"\x1b[H", // CUP
+const (
+	mStart = iota
+	mEnd
+	mBoth
+)
+
+type Inst struct {
+	Mode int
+	Code string
+}
+
+func clearScreen(mode int) {
+	instrs := []Inst{
+		{mBoth, "\x1b[2J"},    // clear the screen
+		{mBoth, "\x1b[H"},     // CUP - get the cursor UP (top left)
+		{mStart, "\x1b[?25l"}, // hide the cursor
+		{mEnd, "\x1b[?25h"},   // display the cursor
 	}
-	for _, code := range codes {
-		fmt.Fprint(os.Stdout, code)
+
+	for _, inst := range instrs {
+		currMode := inst.Mode
+		if currMode == mBoth || currMode == mode {
+			fmt.Fprint(os.Stdout, inst.Code)
+		}
 	}
 }
 
@@ -24,11 +41,11 @@ var initError error
 
 func shutDown(stdinFd int, state *term.State) {
 	term.Restore(stdinFd, state)
-	clearScreen()
+	clearScreen(mEnd)
 }
 
 func init() {
-	clearScreen()
+	clearScreen(mStart)
 	stdinFd = int(os.Stdout.Fd())
 	state, initError = term.MakeRaw(stdinFd)
 }
@@ -39,6 +56,11 @@ func main() {
 		return
 	}
 	defer shutDown(stdinFd, state)
+
+	// we'll use this later to create a buffer so that we can
+	// buffer changes and then write them to the screen
+	//var term unix.Termios
+	//c, r, err := term.GetSize(stdinFd)
 
 OUT:
 	for {
