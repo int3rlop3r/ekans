@@ -70,7 +70,7 @@ OUT:
 		case nil: // no error, process input
 			b := buf[0]
 			fmt.Print(b)
-			if b == 4 {
+			if b == 4 || b == 3 {
 				fmt.Print("qutting!\r\n")
 				break OUT
 			}
