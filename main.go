@@ -1,18 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 
 	"golang.org/x/term"
 )
-
-// first of all we can't do shit if we don't get into raw mode
-// now, before getting into raw mode we need to have a way to
-// escape or else we'll be stuck in raw mode and will hae to kill
-// the terminal in order to break out
 
 func clearScreen() {
 	codes := []string{
@@ -46,15 +40,13 @@ func main() {
 	}
 	defer shutDown(stdinFd, state)
 
-	//var term unix.Termios
-	//c, r, err := term.GetSize(stdinFd)
-	rd := bufio.NewReader(os.Stdin)
-
 OUT:
 	for {
-		b, err := rd.ReadByte()
+		buf := make([]byte, 1)
+		_, err := os.Stdin.Read(buf) // dirty way to read from stdin
 		switch err {
 		case nil: // no error, process input
+			b := buf[0]
 			fmt.Print(b)
 			if b == 4 {
 				fmt.Print("qutting!\r\n")
