@@ -123,7 +123,6 @@ OUT:
 	for _ = range time.Tick(1 * time.Second) {
 		select {
 		case msg := <-exitGame:
-			fmt.Fprintf(os.Stderr, "err:", msg)
 			exitError.SetError(msg)
 			break OUT
 		default:
