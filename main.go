@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -14,6 +15,18 @@ const (
 	mEnd
 	mBoth
 )
+
+type ExitError struct {
+	msg string
+}
+
+func (e *ExitError) SetError(msg error) {
+	e.msg = msg.Error()
+}
+
+func (e *ExitError) Error() string {
+	return e.msg
+}
 
 type Inst struct {
 	Mode int
@@ -41,45 +54,35 @@ func clearScreen(mode int) {
 var stdinFd int
 var state *term.State
 var initError error
+var exitError *ExitError
 
-func shutDown(stdinFd int, state *term.State) {
+func shutDown(stdinFd int, state *term.State, err error) {
 	term.Restore(stdinFd, state)
 	clearScreen(mEnd)
+	fmt.Println(err)
 }
 
 func init() {
 	clearScreen(mStart)
 	stdinFd = int(os.Stdout.Fd())
 	state, initError = term.MakeRaw(stdinFd)
+	exitError = new(ExitError)
 }
 
-type KeyPress struct {
-	Code byte
-	Err  error
-}
-
-func processKeyPress() chan *KeyPress {
-	out := make(chan *KeyPress)
+func processKeyPress() chan error {
+	out := make(chan error)
 	go func() {
 		for {
 			buf := make([]byte, 1)
 			_, err := os.Stdin.Read(buf) // dirty way to read from stdin
-			out <- &KeyPress{buf[0], err}
-			//switch err {
-			//case nil: // no error, process input
-			//b := buf[0]
-			////fmt.Print(b) // instead of printing we'll have to return events
-			//if b == 4 || b == 3 {
-			//fmt.Print("qutting!\r\n")
-			//break OUT
-			//}
-			//out <- b
-			//case io.EOF:
-			//break
-			//default:
-			//fmt.Print("err: %s\r\n", err)
-			//break
-			//}
+			//out <- &KeyPress{buf[0], err}
+			//if buf[0] == 3 || buf[0] == 4 || err != nil {
+			if buf[0] == 3 || buf[0] == 4 {
+				//fmt.Println(err) // NOTE: this never gets printed
+				out <- errors.New("player quit the game")
+			} else if err != nil {
+				out <- err
+			}
 		}
 	}()
 	return out
@@ -105,11 +108,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "err:", initError)
 		return
 	}
-	defer shutDown(stdinFd, state)
+	defer shutDown(stdinFd, state, exitError)
 
-	// we'll use this later to create a buffer so that we can
-	// buffer changes and then write them to the screen
-	//var term unix.Termios
 	c, r, err := term.GetSize(stdinFd)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "couldn't get screen size, err:", err)
@@ -117,22 +117,15 @@ func main() {
 	}
 	//fmt.Printf("rows: %d, cols: %d\r\n", r, c)
 	buf := makeBuff(r, c)
-	kpChan := processKeyPress()
+	exitGame := processKeyPress()
 	snake := NewSnake()
 OUT:
 	for _ = range time.Tick(1 * time.Second) {
 		select {
-		case ev := <-kpChan:
-			if ev.Err != nil {
-				fmt.Fprint(os.Stderr, "key press error:", ev.Err)
-			}
-			key := ev.Code
-			if key == 4 || key == 3 {
-				fmt.Print("qutting!\r\n")
-				break OUT
-			}
-			// we'll probably have to flush here too
-			// but we'll worry about it later!!
+		case msg := <-exitGame:
+			fmt.Fprintf(os.Stderr, "err:", msg)
+			exitError.SetError(msg)
+			break OUT
 		default:
 			snake.Move()
 			plot(buf, snake)
