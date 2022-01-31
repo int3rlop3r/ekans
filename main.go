@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -54,26 +53,36 @@ func init() {
 	state, initError = term.MakeRaw(stdinFd)
 }
 
-func processKeyPress() {
-OUT:
-	for {
-		buf := make([]byte, 1)
-		_, err := os.Stdin.Read(buf) // dirty way to read from stdin
-		switch err {
-		case nil: // no error, process input
-			b := buf[0]
-			fmt.Print(b) // instead of printing we'll have to return events
-			if b == 4 || b == 3 {
-				fmt.Print("qutting!\r\n")
-				break OUT
-			}
-		case io.EOF:
-			break
-		default:
-			fmt.Print("err: %s\r\n", err)
-			break
+type KeyPress struct {
+	Code byte
+	Err  error
+}
+
+func processKeyPress() chan *KeyPress {
+	out := make(chan *KeyPress)
+	go func() {
+		for {
+			buf := make([]byte, 1)
+			_, err := os.Stdin.Read(buf) // dirty way to read from stdin
+			out <- &KeyPress{buf[0], err}
+			//switch err {
+			//case nil: // no error, process input
+			//b := buf[0]
+			////fmt.Print(b) // instead of printing we'll have to return events
+			//if b == 4 || b == 3 {
+			//fmt.Print("qutting!\r\n")
+			//break OUT
+			//}
+			//out <- b
+			//case io.EOF:
+			//break
+			//default:
+			//fmt.Print("err: %s\r\n", err)
+			//break
+			//}
 		}
-	}
+	}()
+	return out
 }
 
 func makeBuff(r, c int) [][]byte {
@@ -88,7 +97,7 @@ func makeBuff(r, c int) [][]byte {
 }
 
 func display(buf [][]byte) {
-	fmt.Printf("%s\r\n", bytes.Join(buf, []byte("\r\n")))
+	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(buf, []byte("\r\n")))
 }
 
 func main() {
@@ -106,9 +115,32 @@ func main() {
 		fmt.Fprintln(os.Stderr, "couldn't get screen size, err:", err)
 		return
 	}
-	fmt.Printf("rows: %d, cols: %d\r\n", r, c)
+	//fmt.Printf("rows: %d, cols: %d\r\n", r, c)
 	buf := makeBuff(r, c)
-	buf[10][50] = 'A'
-	display(buf)
-	time.Sleep(20 * time.Second)
+	kpChan := processKeyPress()
+	snake := NewSnake()
+OUT:
+	for _ = range time.Tick(1 * time.Second) {
+		select {
+		case ev := <-kpChan:
+			if ev.Err != nil {
+				fmt.Fprint(os.Stderr, "key press error:", ev.Err)
+			}
+			key := ev.Code
+			if key == 4 || key == 3 {
+				fmt.Print("qutting!\r\n")
+				break OUT
+			}
+			// we'll probably have to flush here too
+			// but we'll worry about it later!!
+		default:
+			snake.Move()
+			plot(buf, snake)
+			display(buf)
+		}
+	}
+}
+
+func plot(buf [][]byte, snake *Snake) {
+	buf[(*snake)[0]][(*snake)[1]] = 'S'
 }
