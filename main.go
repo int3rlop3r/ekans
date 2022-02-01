@@ -134,5 +134,10 @@ OUT:
 }
 
 func plot(buf [][]byte, snake *Snake) {
+	for i := range buf {
+		for j := range buf[i] {
+			buf[i][j] = ' '
+		}
+	}
 	buf[(*snake)[0]][(*snake)[1]] = 'S'
 }
