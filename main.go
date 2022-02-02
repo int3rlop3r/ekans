@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -75,10 +74,7 @@ func processKeyPress() chan error {
 		for {
 			buf := make([]byte, 1)
 			_, err := os.Stdin.Read(buf) // dirty way to read from stdin
-			//out <- &KeyPress{buf[0], err}
-			//if buf[0] == 3 || buf[0] == 4 || err != nil {
 			if buf[0] == 3 || buf[0] == 4 {
-				//fmt.Println(err) // NOTE: this never gets printed
 				out <- errors.New("player quit the game")
 			} else if err != nil {
 				out <- err
@@ -86,21 +82,6 @@ func processKeyPress() chan error {
 		}
 	}()
 	return out
-}
-
-func makeBuff(r, c int) [][]byte {
-	buf := make([][]byte, r-1)
-	for i := range buf {
-		buf[i] = make([]byte, c)
-		for j := range buf[i] {
-			buf[i][j] = ' ' // fill the buffer with spaces
-		}
-	}
-	return buf
-}
-
-func display(buf [][]byte) {
-	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(buf, []byte("\r\n")))
 }
 
 func main() {
@@ -115,29 +96,19 @@ func main() {
 		fmt.Fprintln(os.Stderr, "couldn't get screen size, err:", err)
 		return
 	}
-	//fmt.Printf("rows: %d, cols: %d\r\n", r, c)
-	buf := makeBuff(r, c)
+	display := NewDisplay(r, c)
 	exitGame := processKeyPress()
 	snake := NewSnake()
 OUT:
-	for _ = range time.Tick(1 * time.Second) {
+	for _ = range time.Tick(700 * time.Millisecond) {
 		select {
 		case msg := <-exitGame:
 			exitError.SetError(msg)
 			break OUT
 		default:
-			snake.Move()
-			plot(buf, snake)
-			display(buf)
+			display.Refresh()
+			snake.Move(display)
+			display.Flush()
 		}
 	}
-}
-
-func plot(buf [][]byte, snake *Snake) {
-	for i := range buf {
-		for j := range buf[i] {
-			buf[i][j] = ' '
-		}
-	}
-	buf[(*snake)[0]][(*snake)[1]] = 'S'
 }
