@@ -1,7 +1,5 @@
 package main
 
-import "log"
-
 const (
 	Up = iota
 	Down
@@ -47,13 +45,9 @@ func (s *Snake) Move(d *Display) {
 func (s *Snake) Bind() {
 	go func() {
 		for key := range s.keyChan {
-			log.Printf("got key: '%d'", key)
 			if !s.validKP(key) {
-				log.Printf("invalid key: '%d'", key)
 				continue
 			}
-			//log.Printf("valid key: '%d'", key)
-			log.Printf("valid key: '%#x'", key)
 			s.changeDir(key)
 		}
 	}()
@@ -76,13 +70,12 @@ func (s *Snake) changeDir(key byte) {
 	case KpRight:
 		dir = Right
 	}
-
 	(*s.body)[0].dir = dir
 }
 
 func NewSnake(keyChan chan byte) *Snake {
 	var b []cell
-	for i := 0; i < 30; i++ {
+	for i := 30; i > 0; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{0, i}})
 	}
 	return &Snake{&b, keyChan}
