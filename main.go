@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -54,6 +55,7 @@ var stdinFd int
 var state *term.State
 var initError error
 var exitError *ExitError
+var f *os.File
 
 func shutDown(stdinFd int, state *term.State, err error) {
 	term.Restore(stdinFd, state)
@@ -66,10 +68,19 @@ func init() {
 	stdinFd = int(os.Stdout.Fd())
 	state, initError = term.MakeRaw(stdinFd)
 	exitError = new(ExitError)
+
+	var fErr error
+	f, fErr = os.OpenFile("/tmp/snake.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if fErr != nil {
+		log.Fatalf("error opening file: %v", fErr)
+	}
+
+	log.SetOutput(f)
 }
 
-func processKeyPress() chan error {
+func processKeyPress() (chan error, chan byte) {
 	out := make(chan error)
+	keyChan := make(chan byte)
 	go func() {
 		for {
 			buf := make([]byte, 1)
@@ -78,10 +89,12 @@ func processKeyPress() chan error {
 				out <- errors.New("player quit the game")
 			} else if err != nil {
 				out <- err
+			} else {
+				keyChan <- buf[0]
 			}
 		}
 	}()
-	return out
+	return out, keyChan
 }
 
 func main() {
@@ -90,6 +103,7 @@ func main() {
 		return
 	}
 	defer shutDown(stdinFd, state, exitError)
+	defer f.Close()
 
 	c, r, err := term.GetSize(stdinFd)
 	if err != nil {
@@ -97,27 +111,31 @@ func main() {
 		return
 	}
 	display := NewDisplay(r, c)
-	exitGame := processKeyPress()
-	snake := NewSnake()
+	exitChan, keyChan := processKeyPress()
+	snake := NewSnake(keyChan)
+	snake.Bind()
 
 OUT:
-	for _ = range time.Tick(100 * time.Millisecond) {
+	//for _ = range time.Tick(100 * time.Millisecond) {
+	for _ = range time.Tick(900 * time.Millisecond) {
 		select {
-		case msg := <-exitGame:
+		case msg := <-exitChan:
 			// create a new type 'key press', it will return the
 			// direction that was pressed - means validation will be taken care of
 			// {dir, err}, on error quit the game other wise process the event
 			exitError.SetError(msg)
+			close(exitChan)
+			close(keyChan)
 			break OUT
 		default:
-			// this will go out of the default block and into the main 'for'
-			// so that events can be passed as value or nil (or -1)
-			// WE STILL NEED TO FIGURE OUT HOW TO TURN, AND PASS TURNING
-			// INFORMATION TO THE REST OF THE BODY
-			// ALSO, DRAW BORDERS SO THAT PEOPLE KNOW WHERE THE SCREEN ENDS!!
-			display.Refresh()
-			snake.Move(display)
-			display.Flush()
 		}
+		// this will go out of the default block and into the main 'for'
+		// so that events can be passed as value or nil (or -1)
+		// WE STILL NEED TO FIGURE OUT HOW TO TURN, AND PASS TURNING
+		// INFORMATION TO THE REST OF THE BODY
+		// ALSO, DRAW BORDERS SO THAT PEOPLE KNOW WHERE THE SCREEN ENDS!!
+		display.Refresh()
+		snake.Move(display)
+		display.Flush()
 	}
 }
