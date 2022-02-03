@@ -22,8 +22,8 @@ func (d *Display) Flush() {
 	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(d.buf, []byte("\r\n")))
 }
 
-func (d *Display) Plot(r, c int) {
-	d.buf[r][c] = 'S'
+func (d *Display) Plot(r, c int, ch byte) {
+	d.buf[r][c] = ch
 }
 
 func NewDisplay(r, c int) *Display {

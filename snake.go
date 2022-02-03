@@ -38,7 +38,10 @@ func (s *Snake) Move(d *Display) {
 	for i := range *s.body {
 		(*s.body)[i].Move()
 		x := (*s.body)[i].pos
-		d.Plot(x[0], x[1])
+		d.Plot(x[0], x[1], '*')
+	}
+	for i := len(*s.body) - 1; i > 0; i-- {
+		(*s.body)[i].dir = (*s.body)[i-1].dir
 	}
 }
 

@@ -116,8 +116,8 @@ func main() {
 	snake.Bind()
 
 OUT:
-	//for _ = range time.Tick(100 * time.Millisecond) {
-	for _ = range time.Tick(900 * time.Millisecond) {
+	//for _ = range time.Tick(900 * time.Millisecond) {
+	for _ = range time.Tick(100 * time.Millisecond) {
 		select {
 		case msg := <-exitChan:
 			// create a new type 'key press', it will return the
