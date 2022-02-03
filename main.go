@@ -99,13 +99,22 @@ func main() {
 	display := NewDisplay(r, c)
 	exitGame := processKeyPress()
 	snake := NewSnake()
+
 OUT:
-	for _ = range time.Tick(700 * time.Millisecond) {
+	for _ = range time.Tick(100 * time.Millisecond) {
 		select {
 		case msg := <-exitGame:
+			// create a new type 'key press', it will return the
+			// direction that was pressed - means validation will be taken care of
+			// {dir, err}, on error quit the game other wise process the event
 			exitError.SetError(msg)
 			break OUT
 		default:
+			// this will go out of the default block and into the main 'for'
+			// so that events can be passed as value or nil (or -1)
+			// WE STILL NEED TO FIGURE OUT HOW TO TURN, AND PASS TURNING
+			// INFORMATION TO THE REST OF THE BODY
+			// ALSO, DRAW BORDERS SO THAT PEOPLE KNOW WHERE THE SCREEN ENDS!!
 			display.Refresh()
 			snake.Move(display)
 			display.Flush()

@@ -7,10 +7,16 @@ const (
 	Right
 )
 
-type body [2]int
+type body struct {
+	pos [2]int
+	dir int
+}
 
 func (s *body) Move() {
-	s[1]++
+	switch s.dir {
+	case Right:
+		s.pos[1]++
+	}
 }
 
 type Snake struct {
@@ -20,7 +26,7 @@ type Snake struct {
 func (s *Snake) Move(d *Display) {
 	for i := range *s.Body {
 		(*s.Body)[i].Move()
-		x := (*s.Body)[i]
+		x := (*s.Body)[i].pos
 		d.Plot(x[0], x[1])
 	}
 }
@@ -28,7 +34,7 @@ func (s *Snake) Move(d *Display) {
 func NewSnake() *Snake {
 	var b []body
 	for i := 0; i < 30; i++ {
-		b = append(b, [2]int{0, i})
+		b = append(b, body{dir: Right, pos: [2]int{0, i}})
 	}
 	return &Snake{&b}
 }
