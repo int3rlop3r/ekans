@@ -79,7 +79,13 @@ func makeBuf(r, c int) [][]byte {
 	for i := range buf {
 		buf[i] = make([]byte, c)
 		for j := range buf[i] {
-			buf[i][j] = ' ' // fill the buffer with spaces
+			if i == 0 || i == r-3 {
+				buf[i][j] = '-' // fill the buffer with spaces
+			} else if (j == 0 || j == c-1) && i < r-3 {
+				buf[i][j] = '|' // fill the buffer with spaces
+			} else {
+				buf[i][j] = ' ' // fill the buffer with spaces
+			}
 		}
 	}
 	return buf
@@ -143,8 +149,8 @@ func (s *Snake) ChangeDir(key byte) {
 
 func NewSnake() *Snake {
 	var b []cell
-	for i := 30; i > 0; i-- {
-		b = append(b, cell{dir: Right, pos: [2]int{0, i}})
+	for i := 35; i > 5; i-- {
+		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
 	return &Snake{&b}
 }
