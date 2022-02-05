@@ -127,7 +127,5 @@ OUT:
 		default:
 		}
 		game.Refresh()
-		snake.Move(game)
-		game.Flush()
 	}
 }

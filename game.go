@@ -23,14 +23,29 @@ type Game struct {
 	snake *Snake
 }
 
-func (d *Game) Refresh() {
+func (d *Game) eraseSnake() {
 	for _, cell := range *d.snake.Body {
 		r, c := cell.GetPos()
 		d.buf[r][c] = ' '
 	}
 }
 
-func (d *Game) Flush() {
+func (d *Game) plotSnake() {
+	for _, cell := range *d.snake.Body {
+		r, c := cell.GetPos()
+		d.buf[r][c] = '*'
+	}
+}
+
+func (d *Game) Refresh() {
+	d.eraseSnake()
+	d.snake.Move()
+	d.plotSnake()
+	d.snake.TransDir()
+	d.flush()
+}
+
+func (d *Game) flush() {
 	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(d.buf, []byte("\r\n")))
 }
 
@@ -96,12 +111,13 @@ type Snake struct {
 	Body *[]cell
 }
 
-func (s *Snake) Move(d *Game) {
+func (s *Snake) Move() {
 	for i := range *s.Body {
 		(*s.Body)[i].Move()
-		x := (*s.Body)[i].pos
-		d.Plot(x[0], x[1], '*')
 	}
+}
+
+func (s *Snake) TransDir() {
 	for i := len(*s.Body) - 1; i > 0; i-- {
 		(*s.Body)[i].dir = (*s.Body)[i-1].dir
 	}
