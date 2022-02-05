@@ -110,10 +110,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "couldn't get screen size, err:", err)
 		return
 	}
-	display := NewDisplay(r, c)
 	exitChan, keyChan := processKeyPress()
-	snake := NewSnake(keyChan)
-	snake.Bind()
+	snake := NewSnake()
+	game := NewGame(snake, r, c, keyChan)
+	game.Start()
 
 OUT:
 	//for _ = range time.Tick(900 * time.Millisecond) {
@@ -126,8 +126,8 @@ OUT:
 			break OUT
 		default:
 		}
-		display.Refresh()
-		snake.Move(display)
-		display.Flush()
+		game.Refresh()
+		snake.Move(game)
+		game.Flush()
 	}
 }
