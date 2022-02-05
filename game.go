@@ -17,10 +17,11 @@ const (
 )
 
 type Game struct {
-	buf   [][]byte
-	size  [2]int
-	keyCh chan byte
-	snake *Snake
+	buf         [][]byte
+	bsize       [2]int
+	keyCh       chan byte
+	snake       *Snake
+	snakeIsSafe bool
 }
 
 func (d *Game) eraseSnake() {
@@ -37,12 +38,40 @@ func (d *Game) plotSnake() {
 	}
 }
 
+func (d *Game) touchedBorder() bool {
+	head := d.snake.Head()
+	return !((0 < head[0] && head[0] < d.bsize[0]) && (0 < head[1] && head[1] < d.bsize[1]))
+}
+
+func (d *Game) validatePos() {
+	if d.touchedBorder() {
+		d.snakeIsSafe = false
+	} else {
+		d.snakeIsSafe = !d.snake.BitSelf()
+	}
+}
+
 func (d *Game) Refresh() {
 	d.eraseSnake()
-	d.snake.Move()
-	d.plotSnake()
-	d.snake.TransDir()
+	if d.snakeIsSafe {
+		d.snake.Move()
+		d.plotSnake()
+		d.snake.TransDir()
+		d.validatePos()
+	} else {
+		d.plotSnake()
+		d.plotGameOver()
+	}
 	d.flush()
+}
+
+func (d *Game) plotGameOver() {
+	msg := []byte(" You lose! Press Ctrl+C to quit. ")
+	r := 5
+	c := 30
+	for i, ch := range msg {
+		d.buf[r][c+i] = ch
+	}
 }
 
 func (d *Game) flush() {
@@ -70,25 +99,27 @@ func (g *Game) validKP(key byte) bool {
 }
 
 func NewGame(snake *Snake, r, c int, keyCh chan byte) *Game {
-	buf := makeBuf(r, c)
-	return &Game{buf, [2]int{r, c}, keyCh, snake}
+	br, bc, buf := makeBuf(r, c)
+	return &Game{buf, [2]int{br, bc}, keyCh, snake, true}
 }
 
-func makeBuf(r, c int) [][]byte {
+func makeBuf(r, c int) (int, int, [][]byte) {
 	buf := make([][]byte, r-1)
+	br := r - 3
+	bc := c - 1
 	for i := range buf {
 		buf[i] = make([]byte, c)
 		for j := range buf[i] {
-			if i == 0 || i == r-3 {
+			if i == 0 || i == br {
 				buf[i][j] = '-' // fill the buffer with spaces
-			} else if (j == 0 || j == c-1) && i < r-3 {
+			} else if (j == 0 || j == bc) && i < br {
 				buf[i][j] = '|' // fill the buffer with spaces
 			} else {
 				buf[i][j] = ' ' // fill the buffer with spaces
 			}
 		}
 	}
-	return buf
+	return br, bc, buf
 }
 
 type cell struct {
@@ -123,10 +154,24 @@ func (s *Snake) Move() {
 	}
 }
 
+func (s *Snake) Head() [2]int {
+	return (*s.Body)[0].pos
+}
+
 func (s *Snake) TransDir() {
 	for i := len(*s.Body) - 1; i > 0; i-- {
 		(*s.Body)[i].dir = (*s.Body)[i-1].dir
 	}
+}
+
+func (s *Snake) BitSelf() bool {
+	head := (*s.Body)[0].pos
+	for i := 1; i < len(*s.Body)-1; i++ {
+		if head[0] == (*s.Body)[i].pos[0] && head[1] == (*s.Body)[i].pos[1] {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Snake) ChangeDir(key byte) {
@@ -149,7 +194,7 @@ func (s *Snake) ChangeDir(key byte) {
 
 func NewSnake() *Snake {
 	var b []cell
-	for i := 35; i > 5; i-- {
+	for i := 30; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
 	return &Snake{&b}
