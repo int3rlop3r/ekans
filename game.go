@@ -24,10 +24,9 @@ type Game struct {
 }
 
 func (d *Game) Refresh() {
-	for i := range d.buf {
-		for j := range d.buf[i] {
-			d.buf[i][j] = ' '
-		}
+	for _, cell := range *d.snake.Body {
+		r, c := cell.GetPos()
+		d.buf[r][c] = ' '
 	}
 }
 
@@ -76,6 +75,10 @@ type cell struct {
 	dir int
 }
 
+func (s *cell) GetPos() (int, int) {
+	return s.pos[0], s.pos[1]
+}
+
 func (s *cell) Move() {
 	switch s.dir {
 	case Up:
@@ -90,22 +93,22 @@ func (s *cell) Move() {
 }
 
 type Snake struct {
-	body *[]cell
+	Body *[]cell
 }
 
 func (s *Snake) Move(d *Game) {
-	for i := range *s.body {
-		(*s.body)[i].Move()
-		x := (*s.body)[i].pos
+	for i := range *s.Body {
+		(*s.Body)[i].Move()
+		x := (*s.Body)[i].pos
 		d.Plot(x[0], x[1], '*')
 	}
-	for i := len(*s.body) - 1; i > 0; i-- {
-		(*s.body)[i].dir = (*s.body)[i-1].dir
+	for i := len(*s.Body) - 1; i > 0; i-- {
+		(*s.Body)[i].dir = (*s.Body)[i-1].dir
 	}
 }
 
 func (s *Snake) ChangeDir(key byte) {
-	curDir := (*s.body)[0].dir
+	curDir := (*s.Body)[0].dir
 	var dir int
 	switch {
 	case key == KpUp && curDir != Down:
@@ -119,7 +122,7 @@ func (s *Snake) ChangeDir(key byte) {
 	default:
 		return
 	}
-	(*s.body)[0].dir = dir // change dir
+	(*s.Body)[0].dir = dir // change dir
 }
 
 func NewSnake() *Snake {
