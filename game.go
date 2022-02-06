@@ -63,13 +63,13 @@ func (g *Game) validatePos() {
 func (g *Game) genFood() {
 	pos := g.snake.Head()
 	if pos == g.food { // or food is in default location
-		x := 0
-		for x == 0 {
-			x = rand.Intn(g.bsize[0] - 1)
+		x := rand.Intn(g.bsize[0] - 1)
+		y := rand.Intn(g.bsize[1] - 1)
+		if x == 0 {
+			x++
 		}
-		y := 0
-		for y == 0 {
-			y = rand.Intn(g.bsize[1] - 1)
+		if y == 0 {
+			y++
 		}
 		g.food = [2]int{x, y}
 		g.snake.Grow()
