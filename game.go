@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 )
 
 const (
@@ -17,69 +18,94 @@ const (
 )
 
 type Game struct {
-	buf         [][]byte
-	bsize       [2]int
-	keyCh       chan byte
-	snake       *Snake
+	buf   [][]byte
+	bsize [2]int
+	keyCh chan byte
+	snake *Snake
+	food  [2]int
+
+	// becomes false if snake touches
+	// borders or bites itself
 	snakeIsSafe bool
 }
 
-func (d *Game) eraseSnake() {
-	for _, cell := range *d.snake.Body {
+func (g *Game) eraseSnake() {
+	for _, cell := range *g.snake.Body {
 		r, c := cell.GetPos()
-		d.buf[r][c] = ' '
+		g.buf[r][c] = ' '
 	}
 }
 
-func (d *Game) plotSnake() {
-	for _, cell := range *d.snake.Body {
+func (g *Game) plotSnake() {
+	for _, cell := range *g.snake.Body {
 		r, c := cell.GetPos()
-		d.buf[r][c] = '*'
+		g.buf[r][c] = '*'
 	}
 }
 
-func (d *Game) touchedBorder() bool {
-	head := d.snake.Head()
-	return !((0 < head[0] && head[0] < d.bsize[0]) && (0 < head[1] && head[1] < d.bsize[1]))
+func (g *Game) plotFood() {
+	g.buf[g.food[0]][g.food[1]] = '$'
 }
 
-func (d *Game) validatePos() {
-	if d.touchedBorder() {
-		d.snakeIsSafe = false
+func (g *Game) touchedBorder() bool {
+	head := g.snake.Head()
+	return !((0 < head[0] && head[0] < g.bsize[0]) && (0 < head[1] && head[1] < g.bsize[1]))
+}
+
+func (g *Game) validatePos() {
+	if g.touchedBorder() {
+		g.snakeIsSafe = false
 	} else {
-		d.snakeIsSafe = !d.snake.BitSelf()
+		g.snakeIsSafe = !g.snake.BitSelf()
 	}
 }
 
-func (d *Game) Refresh() {
-	d.eraseSnake()
-	if d.snakeIsSafe {
-		d.snake.Move()
-		d.plotSnake()
-		d.snake.TransDir()
-		d.validatePos()
+func (g *Game) genFood() {
+	pos := g.snake.Head()
+	if pos == g.food { // or food is in default location
+		x := 0
+		for x == 0 {
+			x = rand.Intn(g.bsize[0] - 1)
+		}
+		y := 0
+		for y == 0 {
+			y = rand.Intn(g.bsize[1] - 1)
+		}
+		g.food = [2]int{x, y}
+	}
+}
+
+func (g *Game) Refresh() {
+	g.eraseSnake()
+	g.plotFood()
+	if g.snakeIsSafe {
+		g.snake.Move()
+		g.genFood()
+		g.plotSnake()
+		g.snake.TransDir()
+		g.validatePos()
 	} else {
-		d.plotSnake()
-		d.plotGameOver()
+		g.plotSnake()
+		g.plotGameOver()
 	}
-	d.flush()
+	g.flush()
 }
 
-func (d *Game) plotGameOver() {
+func (g *Game) plotGameOver() {
 	msg := []byte(" You lose! Press Ctrl+C to quit. ")
 	r := 5
 	c := 30
 	for i, ch := range msg {
-		d.buf[r][c+i] = ch
+		g.buf[r][c+i] = ch
 	}
 }
 
-func (d *Game) flush() {
-	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(d.buf, []byte("\r\n")))
+func (g *Game) flush() {
+	fmt.Printf("\x1b[H\x1b[0J%s\r\n", bytes.Join(g.buf, []byte("\r\n")))
 }
 
-func (d *Game) Plot(r, c int, ch byte) {
-	d.buf[r][c] = ch
+func (g *Game) Plot(r, c int, ch byte) {
+	g.buf[r][c] = ch
 }
 
 func (g *Game) Start() {
@@ -100,7 +126,9 @@ func (g *Game) validKP(key byte) bool {
 
 func NewGame(snake *Snake, r, c int, keyCh chan byte) *Game {
 	br, bc, buf := makeBuf(r, c)
-	return &Game{buf, [2]int{br, bc}, keyCh, snake, true}
+	food := [2]int{19, 22}
+	bsize := [2]int{br, bc}
+	return &Game{buf, bsize, keyCh, snake, food, true}
 }
 
 func makeBuf(r, c int) (int, int, [][]byte) {
