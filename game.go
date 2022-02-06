@@ -72,6 +72,7 @@ func (g *Game) genFood() {
 			y = rand.Intn(g.bsize[1] - 1)
 		}
 		g.food = [2]int{x, y}
+		g.snake.Grow()
 	}
 }
 
@@ -95,6 +96,7 @@ func (g *Game) plotGameOver() {
 	msg := []byte(" You lose! Press Ctrl+C to quit. ")
 	r := 5
 	c := 30
+	// NOTE: this will make the game crash if the screen is too small
 	for i, ch := range msg {
 		g.buf[r][c+i] = ch
 	}
@@ -139,9 +141,9 @@ func makeBuf(r, c int) (int, int, [][]byte) {
 		buf[i] = make([]byte, c)
 		for j := range buf[i] {
 			if i == 0 || i == br {
-				buf[i][j] = '-' // fill the buffer with spaces
+				buf[i][j] = '-' // top and bottom border
 			} else if (j == 0 || j == bc) && i < br {
-				buf[i][j] = '|' // fill the buffer with spaces
+				buf[i][j] = '|' // left and right border
 			} else {
 				buf[i][j] = ' ' // fill the buffer with spaces
 			}
@@ -170,6 +172,20 @@ func (s *cell) Move() {
 	case Right:
 		s.pos[1]++
 	}
+}
+
+func (s *cell) GetPrevPos() [2]int {
+	switch s.dir {
+	case Up:
+		return [2]int{s.pos[0] + 1, s.pos[1]}
+	case Down:
+		return [2]int{s.pos[0] - 1, s.pos[1]}
+	case Left:
+		return [2]int{s.pos[0], s.pos[1] + 1}
+	case Right:
+		return [2]int{s.pos[0], s.pos[1] - 1}
+	}
+	return [2]int{}
 }
 
 type Snake struct {
@@ -220,9 +236,15 @@ func (s *Snake) ChangeDir(key byte) {
 	(*s.Body)[0].dir = dir // change dir
 }
 
+func (s *Snake) Grow() {
+	last := (*s.Body)[len((*s.Body))-1]
+	(*s.Body) = append((*s.Body), cell{dir: last.dir, pos: last.GetPrevPos()})
+}
+
 func NewSnake() *Snake {
 	var b []cell
-	for i := 30; i > 5; i-- {
+	//for i := 30; i > 5; i-- {
+	for i := 8; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
 	return &Snake{&b}
