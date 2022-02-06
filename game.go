@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 )
@@ -49,20 +50,16 @@ func (g *Game) plotFood() {
 
 func (g *Game) touchedBorder() bool {
 	head := g.snake.Head()
-	return !((0 < head[0] && head[0] < g.bsize[0]) && (0 < head[1] && head[1] < g.bsize[1]))
-}
-
-func (g *Game) validatePos() {
-	if g.touchedBorder() {
-		g.snakeIsSafe = false
-	} else {
-		g.snakeIsSafe = !g.snake.BitSelf()
-	}
+	return !((0 < head[0] && head[0] < g.bsize[0]) &&
+		(0 < head[1] && head[1] < g.bsize[1]))
 }
 
 func (g *Game) genFood() {
 	pos := g.snake.Head()
 	if pos == g.food { // or food is in default location
+		// NOTE: since this is a bit slow we can pre-compute
+		// values and then consume them as they're used.
+		// We can use a buffered channel for this.
 		x := rand.Intn(g.bsize[0] - 1)
 		y := rand.Intn(g.bsize[1] - 1)
 		if x == 0 {
@@ -80,11 +77,15 @@ func (g *Game) Refresh() {
 	g.eraseSnake()
 	g.plotFood()
 	if g.snakeIsSafe {
-		g.snake.Move()
+		if err := g.snake.Move(); err != nil {
+			g.snakeIsSafe = false
+		}
 		g.genFood()
 		g.plotSnake()
 		g.snake.TransDir()
-		g.validatePos()
+		if g.touchedBorder() {
+			g.snakeIsSafe = false
+		}
 	} else {
 		g.plotSnake()
 		g.plotGameOver()
@@ -192,10 +193,15 @@ type Snake struct {
 	Body *[]cell
 }
 
-func (s *Snake) Move() {
+func (s *Snake) Move() error {
+	var err error
 	for i := range *s.Body {
 		(*s.Body)[i].Move()
+		if i > 0 && (*s.Body)[i].pos == (*s.Body)[0].pos {
+			err = errors.New("snake bit self")
+		}
 	}
+	return err // complete movement then report
 }
 
 func (s *Snake) Head() [2]int {
@@ -233,7 +239,7 @@ func (s *Snake) ChangeDir(key byte) {
 	default:
 		return
 	}
-	(*s.Body)[0].dir = dir // change dir
+	(*s.Body)[0].dir = dir // NOTE: race condition!!
 }
 
 func (s *Snake) Grow() {
@@ -243,7 +249,6 @@ func (s *Snake) Grow() {
 
 func NewSnake() *Snake {
 	var b []cell
-	//for i := 30; i > 5; i-- {
 	for i := 8; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
