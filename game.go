@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"time"
@@ -38,7 +39,7 @@ func (t *GameTicker) Dur() string {
 }
 
 func (t *GameTicker) Incr() {
-	t.d -= (10 * time.Millisecond) // decr by a factor
+	t.d = time.Duration(float64(t.d) - (float64(t.d) * math.Pow(0.5, 5.0))) //  * time.Microsecond
 	t.ticker.Reset(t.d)
 }
 
