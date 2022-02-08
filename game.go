@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
+	"time"
 )
 
 const (
@@ -18,12 +20,36 @@ const (
 	KpRight = 0x43
 )
 
+type GameTicker struct {
+	d      time.Duration
+	ticker *time.Ticker
+}
+
+func (t *GameTicker) GetChan() <-chan time.Time {
+	return t.ticker.C
+}
+
+func (t *GameTicker) Stop() {
+	t.ticker.Stop()
+}
+
+func (t *GameTicker) Dur() string {
+	return t.d.String()
+}
+
+func (t *GameTicker) Incr() {
+	t.d -= (10 * time.Millisecond) // decr by a factor
+	t.ticker.Reset(t.d)
+}
+
 type Game struct {
-	buf   [][]byte
-	bsize [2]int
-	keyCh chan byte
-	snake *Snake
-	food  [2]int
+	buf    [][]byte
+	bsize  [2]int
+	keyCh  chan byte
+	snake  *Snake
+	food   [2]int
+	ticker *GameTicker
+	score  int
 
 	// becomes false if snake touches
 	// borders or bites itself
@@ -70,6 +96,8 @@ func (g *Game) genFood() {
 		}
 		g.food = [2]int{x, y}
 		g.snake.Grow()
+		g.IncrScoreAndTicker()
+		g.DisplayScore()
 	}
 }
 
@@ -112,6 +140,7 @@ func (g *Game) Plot(r, c int, ch byte) {
 }
 
 func (g *Game) Start() {
+	g.DisplayScore()
 	go func() {
 		for key := range g.keyCh {
 			if !g.validKP(key) {
@@ -127,11 +156,35 @@ func (g *Game) validKP(key byte) bool {
 		key == KpLeft || key == KpRight
 }
 
+func (g *Game) Tick() <-chan time.Time {
+	return g.ticker.GetChan()
+}
+
+func (g *Game) Stop() {
+	g.ticker.Stop()
+}
+
+func (g *Game) IncrScoreAndTicker() {
+	g.ticker.Incr()
+	g.score += 50
+	//log.Println("changed duration to:", g.ticker.Dur())
+}
+
+func (g *Game) DisplayScore() {
+	strScore := []byte("Score: ")
+	strScore = append(strScore, []byte(strconv.Itoa(g.score))...)
+	for i, ch := range strScore {
+		g.buf[g.bsize[0]+1][i] = ch
+	}
+}
+
 func NewGame(snake *Snake, r, c int, keyCh chan byte) *Game {
 	br, bc, buf := makeBuf(r, c)
 	food := [2]int{19, 22}
 	bsize := [2]int{br, bc}
-	return &Game{buf, bsize, keyCh, snake, food, true}
+	tickDur := 120 * time.Millisecond
+	ticker := &GameTicker{tickDur, time.NewTicker(tickDur)}
+	return &Game{buf, bsize, keyCh, snake, food, ticker, 0, true}
 }
 
 func makeBuf(r, c int) (int, int, [][]byte) {

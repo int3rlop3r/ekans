@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"golang.org/x/term"
 )
@@ -116,13 +115,15 @@ func main() {
 	game.Start()
 
 OUT:
-	//for _ = range time.Tick(900 * time.Millisecond) {
-	for _ = range time.Tick(100 * time.Millisecond) {
+	for _ = range game.Tick() {
 		select {
 		case msg := <-exitChan:
 			exitError.SetError(msg)
 			close(exitChan)
 			close(keyChan)
+			game.Stop()
+			// NOTE: now that we're calling game.Stop()
+			// we can get rid of the break statement!
 			break OUT
 		default:
 		}
