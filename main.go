@@ -123,7 +123,7 @@ OUT:
 			close(keyChan)
 			game.Stop()
 			// NOTE: now that we're calling game.Stop()
-			// we can get rid of the break statement!
+			// can we get rid of the break statement?
 			break OUT
 		default:
 		}
