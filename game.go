@@ -273,16 +273,6 @@ func (s *Snake) TransDir() {
 	}
 }
 
-func (s *Snake) BitSelf() bool {
-	head := (*s.Body)[0].pos
-	for i := 1; i < len(*s.Body)-1; i++ {
-		if head[0] == (*s.Body)[i].pos[0] && head[1] == (*s.Body)[i].pos[1] {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Snake) ChangeDir(key byte) {
 	curDir := (*s.Body)[0].dir
 	var dir int
