@@ -245,11 +245,16 @@ func (s *cell) GetPrevPos() [2]int {
 
 type Snake struct {
 	Body *[]cell
+	hDir int
 }
 
 func (s *Snake) Move() error {
 	var err error
 	for i := range *s.Body {
+		if i == 0 && s.hDir != -1 {
+			(*s.Body)[i].dir = s.hDir
+			s.hDir = -1
+		}
 		(*s.Body)[i].Move()
 		if i > 0 && (*s.Body)[i].pos == (*s.Body)[0].pos {
 			err = errors.New("snake bit self")
@@ -293,7 +298,9 @@ func (s *Snake) ChangeDir(key byte) {
 	default:
 		return
 	}
-	(*s.Body)[0].dir = dir // NOTE: race condition!!
+	if s.hDir == -1 {
+		s.hDir = dir
+	}
 }
 
 func (s *Snake) Grow() {
@@ -306,5 +313,5 @@ func NewSnake() *Snake {
 	for i := 8; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
-	return &Snake{&b}
+	return &Snake{&b, -1}
 }
