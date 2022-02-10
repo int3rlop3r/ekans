@@ -283,7 +283,7 @@ func (s *Snake) ChangeDir(key byte) {
 	default:
 		return
 	}
-	(*s.Body)[0].dir = dir // NOTE: race condition!!
+	(*s.Body)[0].dir = dir
 }
 
 func (s *Snake) Grow() {
