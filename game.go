@@ -245,16 +245,11 @@ func (s *cell) GetPrevPos() [2]int {
 
 type Snake struct {
 	Body *[]cell
-	hDir int
 }
 
 func (s *Snake) Move() error {
 	var err error
 	for i := range *s.Body {
-		if i == 0 && s.hDir != -1 {
-			(*s.Body)[i].dir = s.hDir
-			s.hDir = -1
-		}
 		(*s.Body)[i].Move()
 		if i > 0 && (*s.Body)[i].pos == (*s.Body)[0].pos {
 			err = errors.New("snake bit self")
@@ -274,23 +269,21 @@ func (s *Snake) TransDir() {
 }
 
 func (s *Snake) ChangeDir(key byte) {
-	curDir := (*s.Body)[0].dir
+	prevDir := (*s.Body)[1].dir
 	var dir int
 	switch {
-	case key == KpUp && curDir != Down:
+	case key == KpUp && prevDir != Down:
 		dir = Up
-	case key == KpDown && curDir != Up:
+	case key == KpDown && prevDir != Up:
 		dir = Down
-	case key == KpLeft && curDir != Right:
+	case key == KpLeft && prevDir != Right:
 		dir = Left
-	case key == KpRight && curDir != Left:
+	case key == KpRight && prevDir != Left:
 		dir = Right
 	default:
 		return
 	}
-	if s.hDir == -1 {
-		s.hDir = dir
-	}
+	(*s.Body)[0].dir = dir // NOTE: race condition!!
 }
 
 func (s *Snake) Grow() {
@@ -303,5 +296,5 @@ func NewSnake() *Snake {
 	for i := 8; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
-	return &Snake{&b, -1}
+	return &Snake{&b}
 }
