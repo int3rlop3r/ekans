@@ -111,7 +111,6 @@ func (g *Game) Refresh() {
 		}
 		g.genFood()
 		g.plotSnake()
-		g.snake.TransDir()
 		if g.touchedBorder() {
 			g.snakeIsSafe = false
 		}
@@ -249,23 +248,27 @@ type Snake struct {
 
 func (s *Snake) Move() error {
 	var err error
+	prevDir := (*s.Body)[0].dir
 	for i := range *s.Body {
 		(*s.Body)[i].Move()
-		if i > 0 && (*s.Body)[i].pos == (*s.Body)[0].pos {
+		if i == 0 {
+			continue
+		}
+
+		if (*s.Body)[i].pos == (*s.Body)[0].pos {
 			err = errors.New("snake bit self")
 		}
+
+		// transfer direction
+		tmp := (*s.Body)[i].dir
+		(*s.Body)[i].dir = prevDir
+		prevDir = tmp
 	}
 	return err // complete movement then report
 }
 
 func (s *Snake) Head() [2]int {
 	return (*s.Body)[0].pos
-}
-
-func (s *Snake) TransDir() {
-	for i := len(*s.Body) - 1; i > 0; i-- {
-		(*s.Body)[i].dir = (*s.Body)[i-1].dir
-	}
 }
 
 func (s *Snake) ChangeDir(key byte) {
@@ -293,7 +296,7 @@ func (s *Snake) Grow() {
 
 func NewSnake() *Snake {
 	var b []cell
-	for i := 8; i > 5; i-- {
+	for i := 20; i > 5; i-- {
 		b = append(b, cell{dir: Right, pos: [2]int{1, i}})
 	}
 	return &Snake{&b}
