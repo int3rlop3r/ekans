@@ -122,13 +122,29 @@ func (g *Game) Refresh() {
 }
 
 func (g *Game) plotGameOver() {
-	msg := []byte(" You lose! Press Ctrl+C to quit. ")
-	r := 5
-	c := 30
-	// NOTE: this will make the game crash if the screen is too small
+	msg := []byte("You lose! Press Ctrl+C to quit. ")
+	r := g.bsize[0] / 2
+	c := (g.bsize[1] / 2)
+	if c-20 > 0 {
+		c -= 20
+	}
 	for i, ch := range msg {
+		if c+i >= g.bsize[1] {
+			g.buf[r][c+i] = '$'
+			break
+		}
 		g.buf[r][c+i] = ch
 	}
+	strScore := []byte(" Your score is: ")
+	strScore = append(strScore, []byte(strconv.Itoa(g.score))...)
+	for i, ch := range strScore {
+		if c+i >= g.bsize[1] {
+			g.buf[r+1][c+i] = '$'
+			break
+		}
+		g.buf[r+1][c+i] = ch
+	}
+
 }
 
 func (g *Game) flush() {
@@ -180,7 +196,7 @@ func (g *Game) DisplayScore() {
 
 func NewGame(snake *Snake, r, c int, keyCh chan byte) *Game {
 	br, bc, buf := makeBuf(r, c)
-	food := [2]int{19, 22}
+	food := [2]int{16, 22}
 	bsize := [2]int{br, bc}
 	tickDur := 120 * time.Millisecond
 	ticker := &GameTicker{tickDur, time.NewTicker(tickDur)}
