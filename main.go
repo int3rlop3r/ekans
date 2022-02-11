@@ -109,6 +109,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, "couldn't get screen size, err:", err)
 		return
 	}
+
+	if r < 21 || c < 44 {
+		exitError.SetError(errors.New("screen size too small to play"))
+		return
+	}
 	exitChan, keyChan := processKeyPress()
 	snake := NewSnake()
 	game := NewGame(snake, r, c, keyChan)
