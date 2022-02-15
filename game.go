@@ -195,6 +195,7 @@ func (g *Game) DisplayScore() {
 }
 
 func NewGame(snake *Snake, r, c int, keyCh chan byte) *Game {
+	rand.Seed(time.Now().UnixNano())
 	br, bc, buf := makeBuf(r, c)
 	food := [2]int{16, 22}
 	bsize := [2]int{br, bc}
