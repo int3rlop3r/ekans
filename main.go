@@ -62,19 +62,21 @@ func shutDown(stdinFd int, state *term.State, err error) {
 	fmt.Println(err)
 }
 
-func init() {
-	clearScreen(mStart)
-	stdinFd = int(os.Stdout.Fd())
-	state, initError = term.MakeRaw(stdinFd)
-	exitError = new(ExitError)
-
+func enableLogging() {
+	// called in 'init' if required
 	var fErr error
 	f, fErr = os.OpenFile("/tmp/snake.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if fErr != nil {
 		log.Fatalf("error opening file: %v", fErr)
 	}
-
 	log.SetOutput(f)
+}
+
+func init() {
+	clearScreen(mStart)
+	stdinFd = int(os.Stdout.Fd())
+	state, initError = term.MakeRaw(stdinFd)
+	exitError = new(ExitError)
 }
 
 func processKeyPress() (chan error, chan byte) {

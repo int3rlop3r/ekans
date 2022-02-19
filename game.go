@@ -183,7 +183,6 @@ func (g *Game) Stop() {
 func (g *Game) IncrScoreAndTicker() {
 	g.ticker.Incr()
 	g.score += 50
-	//log.Println("changed duration to:", g.ticker.Dur())
 }
 
 func (g *Game) DisplayScore() {
