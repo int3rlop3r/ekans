@@ -1,6 +1,6 @@
 # ekans
 
-A terminal version of the popular snake game named after the pokemon. The speed increases automatically as you grow and eat more `$`s. Oh and watch out for the borders!
+A terminal version of the popular snake game that doesn't use curses. The speed increases automatically as you grow and eat more `$`s. Oh and watch out for the borders!
 
 ## Try it out!
 
