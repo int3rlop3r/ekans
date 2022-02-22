@@ -8,11 +8,10 @@ A terminal version of the popular snake game that doesn't use curses. The speed 
     $ chmod +x ekans
     $ ./ekans
 
+Or just run `go install github.com/int3rlop3r/ekans@latest` to install the latest version.
+
 ![Demo](https://raw.githubusercontent.com/int3rlop3r/ekans/main/ekans.gif)
 
 ## Note
 
-As of now only linux binaries are available on the releases page. If you want to try it out on a mac run the below
-command (assuming you have already installed go) -
-
-    $ go install github.com/int3rlop3r/ekans@latest
+As of now only linux binaries are available on the 'releases' page. If you want to try it out on a mac you'll need to run the `go install` command mentioned above (assuming you have already installed go).
