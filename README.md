@@ -12,6 +12,7 @@ A terminal version of the popular snake game that doesn't use curses. The speed 
 
 ## Note
 
-As of now there are binary releases only for linux. If you want to try it out on a mac run the below command -
+As of now only linux binaries are available on the releases page. If you want to try it out on a mac run the below
+command (assuming you have already installed go) -
 
-    $ go install github.com/int3rlop3r/ekans@latest # assuming you have already installed go
+    $ go install github.com/int3rlop3r/ekans@latest
